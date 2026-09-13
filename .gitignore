@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Relay runtime data
+data/*.sqlite
+data/*.sqlite3
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Evaluation output
+eval/results/
+runs/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,11 +1,6 @@
-"""LangGraph state definitions for Project Relay.
+"""Shared LangGraph state for Project Relay M0."""
 
-M0 deliberately starts with a very small state surface. Later milestones
-extend this schema only when new graph capabilities require additional state.
-"""
-
-from typing import Literal, TypedDict
-
+from typing import Literal, NotRequired, TypedDict
 
 TerminalStatus = Literal[
     "running",
@@ -15,10 +10,12 @@ TerminalStatus = Literal[
 
 
 class RelayState(TypedDict):
-    """Minimal M0 shared graph state."""
+    """Minimal shared state required by the M0 graph."""
 
     episode_id: str
     task: str
-    valid: bool
+    should_interrupt: bool
     route_reason: str | None
     terminal_status: TerminalStatus
+    visited_nodes: list[str]
+    resume_value: NotRequired[str]

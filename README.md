@@ -7,20 +7,7 @@ LangGraph system through an end-to-end multi-agent workflow.
 
 The secondary experiment investigates whether four small local language
 models gain useful system-level capability when surrounded by a minimal
-agentic harness containing:
-
-- explicit goals and bounded goal pursuit;
-- structured shared state;
-- conditional graph routing;
-- RAG;
-- external information access;
-- working memory;
-- episodic memory;
-- learned semantic/procedural memory;
-- memory consolidation;
-- deliberate forgetting;
-- checkpoint persistence;
-- failure-aware engineering.
+agentic harness.
 
 ## Models
 
@@ -29,28 +16,43 @@ Initial model set:
 - `phi4-mini:3.8b-q4_K_M` — Scout
 - `ministral-3:8b` — Retriever
 - `gemma4:e4b` — Researcher
-- `qwen3:8b` — Goal formation, synthesis, evaluation, memory curation
+- `qwen3:8b` — Synthesizer and later integrative functions
 
 LangGraph is the orchestration authority. There is no LLM supervisor.
 
-## Current Milestone
+## Accepted Milestone
 
 ### M0 — LangGraph Skeleton
 
-M0 exists to prove:
+M0 proved:
 
 - explicit `StateGraph`;
-- typed graph state;
-- deterministic nodes;
-- conditional edges;
-- success and failure terminals;
+- typed shared state;
+- deterministic routing;
+- explicit success/failure paths;
 - SQLite checkpoint persistence;
 - thread isolation;
-- interruption/resume behaviour;
+- checkpointed interrupt/resume;
 - execution receipts;
 - failure-aware documentation.
 
-No LLM, RAG, web, or long-term memory behaviour belongs in M0.
+## Current Milestone
+
+### M1 — Four-Model Graph
+
+M1 introduces exactly four local model-backed LangGraph nodes:
+
+`Scout -> Retriever -> Researcher -> Synthesizer`
+
+M1 deliberately does **not** introduce:
+
+- RAG;
+- web access;
+- long-term memory;
+- dynamic goals;
+- iterative agent loops.
+
+Those capabilities belong to later milestones.
 
 ## Engineering Standard
 

@@ -7,8 +7,10 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 
 dependencies = [
+    "httpx>=0.28,<0.29",
     "langgraph==1.2.11",
     "langgraph-checkpoint-sqlite==3.1.1",
+    "pydantic>=2.13,<3",
 ]
 
 [project.optional-dependencies]

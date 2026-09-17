@@ -199,3 +199,181 @@ Critical native commands in milestone automation must be followed by:
 This failure is verified operationally by forcing or observing a native
 command with a non-zero exit code and confirming the script terminates before
 later gates execute.
+
+---
+
+## FM-006 — Ollama runtime unavailable
+
+**Component:** Local model runtime
+**Code location:** `src/relay/models/ollama.py`
+**Responsibility:** Provide local structured inference to M1 model nodes.
+
+### Observable symptoms
+
+A model invocation or model-inventory request raises `ModelInvocationError`
+before a valid model output reaches graph state.
+
+### Likely causes
+
+- Ollama is not running;
+- the configured host is wrong;
+- the local API is unreachable.
+
+### First check
+
+Verify the configured `OLLAMA_HOST` and query the Ollama model inventory.
+
+### Propagation
+
+The active model node cannot complete, so downstream model nodes must not run.
+
+### Recovery
+
+Restore the Ollama runtime and rerun the affected episode from a known-safe
+checkpoint or a new thread as appropriate.
+
+### DO NOT
+
+Do not reinterpret a runtime connectivity failure as a model reasoning failure.
+
+### Related tests
+
+`test_ollama_http_failure_is_wrapped`
+
+---
+
+## FM-007 — Required Relay model missing
+
+**Component:** Local model inventory
+**Code location:** `src/relay/models/ollama.py::ensure_models_available`
+
+### Observable symptoms
+
+The live M1 smoke test stops before graph execution and names one or more
+required models that are not visible to Ollama.
+
+### First check
+
+Run `ollama list` and compare exact model tags with `relay.config.RELAY_MODELS`.
+
+### Recovery
+
+Install or restore the exact required model tag, or deliberately amend the
+design before substituting another model.
+
+### DO NOT
+
+Do not silently substitute a different model during the formal experiment.
+
+### Related tests
+
+`test_missing_required_model_fails_before_graph_execution`
+
+---
+
+## FM-008 — Model returns malformed structured output
+
+**Component:** Model output boundary
+**Code location:** `src/relay/models/ollama.py::invoke`
+
+### Observable symptoms
+
+A node raises `ModelInvocationError` because model output is empty, malformed
+JSON, or incompatible with the required Pydantic schema.
+
+### First check
+
+Identify the model and output schema named by the original exception.
+
+### Propagation
+
+The current LangGraph node fails before invalid data is written into shared
+state. Downstream nodes should not receive fabricated fallback content.
+
+### Recovery
+
+Preserve the failing prompt/output evidence, reproduce the failure, and decide
+whether prompt/schema correction is required.
+
+### DO NOT
+
+Do not coerce malformed output into graph state by dropping required fields.
+
+### Related tests
+
+- `test_ollama_malformed_json_fails_closed`
+- `test_ollama_schema_violation_fails_closed`
+
+---
+
+## FM-009 — Upstream specialist context missing
+
+**Component:** Four-model state handoff
+**Code locations:** `src/relay/nodes/`
+**Responsibility:** Pass validated structured outputs through LangGraph state.
+
+### Observable symptoms
+
+A downstream node cannot access an expected upstream output such as
+`scout_output` or `retriever_output`.
+
+### Likely causes
+
+- graph edge bypassed the expected node;
+- upstream node failed before committing state;
+- state schema or key changed incompatibly.
+
+### First check
+
+Inspect `visited_nodes`, `model_trace`, and the checkpoint immediately before
+the failing node.
+
+### Propagation
+
+Later specialists may be unable to construct their prompt. This should be
+treated as a state/graph failure rather than a model-quality problem.
+
+### Recovery
+
+Restore the expected graph path or state contract, then rerun regression tests.
+
+### DO NOT
+
+Do not fabricate a missing upstream output merely to allow later nodes to run.
+
+### Related tests
+
+`test_valid_task_runs_all_four_models`
+
+---
+
+## FM-010 — Four-model sequence differs from design
+
+**Component:** LangGraph M1 topology
+**Code location:** `src/relay/graph.py`
+**Responsibility:** Execute Scout, Retriever, Researcher, and Synthesizer in
+the frozen M1 sequence.
+
+### Observable symptoms
+
+`model_trace` is missing a model, contains a duplicate, contains an unexpected
+model, or executes models in a different order.
+
+### First check
+
+Inspect `model_trace` and `visited_nodes` in the terminal receipt.
+
+### Recovery
+
+Review graph edges and node-model configuration before changing prompts or
+model behaviour.
+
+### DO NOT
+
+Do not accept M1 based only on a plausible final answer. The expected graph
+path itself is part of the milestone contract.
+
+### Related tests
+
+- `test_valid_task_runs_all_four_models`
+- `test_interrupt_resumes_into_four_model_path_after_reopen`

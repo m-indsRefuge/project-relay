@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-14T11:48:36.357Z",
+  "updatedAtMs": 1789386516357,
+  "reason": "windowFocus",
+  "extension": {
+    "name": "editor-state-mcp",
+    "version": "0.1.4"
+  },
+  "window": {
+    "id": "2884cd1a",
+    "pid": 7804,
+    "focused": false,
+    "vscodeVersion": "1.137.0",
+    "heartbeatPath": "C:\\Users\\nolan\\.editor-state-mcp\\heartbeat\\7804.json"
+  },
+  "workspace": {
+    "name": "relay",
+    "workspaceFile": null,
+    "folders": [
+      "c:\\Users\\nolan\\AIProjects\\relay"
+    ]
+  },
+  "activeEditor": null,
+  "selection": null,
+  "additionalSelections": [],
+  "cursor": null,
+  "lastDeliberateSelection": null,
+  "openTabs": [
+    {
+      "relativePath": null,
+      "path": null,
+      "scheme": null,
+      "kind": "other",
+      "isActive": true,
+      "isDirty": false,
+      "isPinned": false,
+      "groupId": 1
+    }
+  ],
+  "recentFiles": [],
+  "truncation": {
+    "openTabsCapped": false,
+    "recentFilesCapped": false
+  }
+}

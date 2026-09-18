@@ -1,8 +1,0 @@
-﻿scripts\m3_smoke.py:14:101: E501 Line too long (143 > 100)
-scripts\m3_smoke.py:15:101: E501 Line too long (134 > 100)
-src\relay\nodes\goal.py:24:101: E501 Line too long (177 > 100)
-src\relay\nodes\goal.py:72:101: E501 Line too long (103 > 100)
-src\relay\nodes\scout.py:13:101: E501 Line too long (129 > 100)
-src\relay\nodes\scout.py:15:101: E501 Line too long (108 > 100)
-src\relay\nodes\synthesizer.py:17:101: E501 Line too long (104 > 100)
-Found 7 errors.

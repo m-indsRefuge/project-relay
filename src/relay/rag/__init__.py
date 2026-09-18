@@ -1,4 +1,11 @@
-"""Project Relay RAG subsystem.
+from relay.rag.embeddings import EmbeddingClient, EmbeddingError, OllamaEmbeddingClient
+from relay.rag.index import KnowledgeIndex, RagError, RagSearch
 
-Introduced during M3.
-"""
+__all__ = [
+    "EmbeddingClient",
+    "EmbeddingError",
+    "KnowledgeIndex",
+    "OllamaEmbeddingClient",
+    "RagError",
+    "RagSearch",
+]

@@ -29,6 +29,7 @@ class DDGSWebSearch:
             raise WebSearchError("Web query cannot be empty.")
         if limit < 1:
             raise WebSearchError("Web result limit must be at least one.")
+
         try:
             raw_results = DDGS(timeout=self.timeout_seconds).text(
                 query,
@@ -39,14 +40,18 @@ class DDGSWebSearch:
             )
         except Exception as exc:
             raise WebSearchError(f"Live web search failed: {exc}") from exc
+
         retrieved_at = datetime.now(UTC).isoformat()
         normalized: list[dict] = []
+
         for index, item in enumerate(raw_results[:limit], start=1):
             title = item.get("title")
             href = item.get("href")
             body = item.get("body")
+
             if not isinstance(title, str) or not isinstance(href, str):
                 continue
+
             normalized.append(
                 {
                     "source_id": f"web:{index:03d}",
@@ -57,4 +62,8 @@ class DDGSWebSearch:
                     "retrieved_at": retrieved_at,
                 }
             )
+
+        if not normalized:
+            raise WebSearchError("Live web search returned no usable results.")
+
         return normalized

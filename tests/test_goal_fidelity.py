@@ -31,9 +31,7 @@ def make_config(thread_id: str) -> dict:
 
 def test_goal_contract_explicitly_preserves_requested_deliverable() -> None:
     assert "requested deliverable is authoritative" in GOAL_SYSTEM
-    assert 'Do not transform "describe how to investigate X" into "investigate X"' in (
-        GOAL_SYSTEM
-    )
+    assert 'Do not transform "describe how to investigate X" into "investigate X"' in (GOAL_SYSTEM)
 
 
 def test_evaluator_contract_distinguishes_describing_from_performing() -> None:
@@ -49,9 +47,7 @@ def test_goal_evaluator_receives_original_user_task(
     fake_model_client,
 ) -> None:
     checkpoint = tmp_path / "checkpoints.sqlite"
-    task = (
-        "Describe a cautious diagnostic approach using only the information supplied."
-    )
+    task = "Describe a cautious diagnostic approach using only the information supplied."
 
     with open_graph(
         checkpoint,
@@ -66,9 +62,7 @@ def test_goal_evaluator_receives_original_user_task(
         )
 
     goal_call = next(
-        call
-        for call in fake_model_client.invocations
-        if call["output_type"] is GoalOutput
+        call for call in fake_model_client.invocations if call["output_type"] is GoalOutput
     )
     evaluation_call = next(
         call

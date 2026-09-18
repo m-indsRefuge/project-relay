@@ -685,3 +685,55 @@ only compare candidate claims against the supplied user task.
 - `test_grounding_audit_forces_synthesizer_revision`
 - `test_grounded_audit_rejects_unsupported_claims`
 - `test_revision_audit_requires_an_issue`
+
+---
+
+## FM-017 — Embedding model unavailable or embedding request fails
+
+**Component:** Local RAG embedding boundary
+**Code location:** `src/relay/rag/embeddings.py`
+
+RAG retrieval fails before ranked knowledge reaches graph state. First confirm Ollama is running and
+`embeddinggemma:300m-qat-q4_0` is visible. Restore the exact model/runtime and rerun retrieval.
+
+**DO NOT:** silently replace semantic retrieval with arbitrary or fabricated chunks.
+
+---
+
+## FM-018 — Local RAG index has no knowledge documents
+
+**Component:** M3 local knowledge index
+**Code location:** `src/relay/rag/index.py`
+
+`RagError` reports that no Markdown documents were found. Restore the version-controlled knowledge
+documents. Do not create placeholder evidence merely so retrieval can continue.
+
+---
+
+## FM-019 — Live web search fails or returns no usable results
+
+**Component:** M3 external web boundary
+**Code location:** `src/relay/tools/web.py`
+
+Network/provider failure or throttling may prevent live results. Preserve the failure and do not
+substitute model knowledge while claiming that the web confirmed it.
+
+---
+
+## FM-020 — RAG and web evidence are conflated
+
+**Component:** M3 source provenance
+
+A local project document must not be presented as current external evidence, and a web snippet must
+not be presented as controlled Relay documentation. Inspect `kind`, `source_id`, `source`, and
+`retrieved_at`. Do not collapse the two evidence classes into an unlabeled blob.
+
+---
+
+## FM-021 — Synthesizer invents or omits source identifiers
+
+**Component:** M3 provenance / grounding boundary
+**Code location:** `src/relay/nodes/grounding.py`
+
+Unknown citation IDs or missing citations when evidence was supplied force `needs_revision` before
+terminal completion. Never accept plausible-looking citation strings that are absent from graph state.

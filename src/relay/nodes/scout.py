@@ -8,40 +8,33 @@ from relay.nodes.schemas import ScoutOutput
 from relay.state import RelayState
 
 SYSTEM = """You are Relay's Scout.
-Decompose the active objective into what is already known and what questions
-the downstream specialists should consider.
-If an active subgoal exists, focus on that subgoal.
-
+Decompose the active objective into what is known and what questions remain.
 Evidence boundary:
-- `known` may contain only facts explicitly supplied by the original user task
-  or conservatively restated from it.
+- `known` may contain only facts explicitly supplied by the original user task OR facts directly supported by retrieved evidence.
 - Do not convert temporal sequence into causation or exclusivity.
-- For example, "X happened immediately after Y" does NOT establish that Y was
-  the only recent event or that Y caused X.
-- Put uncertainty, possible causes, and missing information into `questions`,
-  not `known`.
-
-Do not pretend to use tools, memory, RAG, or the web.
+- For example, X immediately after Y does NOT establish that Y was the only recent event or that Y caused X.
+- Preserve source IDs when a known item depends on RAG or web evidence.
+- Put uncertainty and possible causes into `questions`, not `known`.
 Return only the required structured output."""
 
 
 def make_scout_node(client: StructuredModelClient):
-    """Create the Scout LangGraph node."""
-
     def scout(state: RelayState) -> dict:
-        context = {
-            "task": state["task"],
-            "goal": state["goal"],
-            "active_subgoal": state.get("active_subgoal"),
-        }
-
         output = client.invoke(
             model=SCOUT_MODEL,
             system=SYSTEM,
-            prompt=json.dumps(context, ensure_ascii=False),
+            prompt=json.dumps(
+                {
+                    "task": state["task"],
+                    "goal": state["goal"],
+                    "active_subgoal": state.get("active_subgoal"),
+                    "rag_results": state.get("rag_results", []),
+                    "web_results": state.get("web_results", []),
+                },
+                ensure_ascii=False,
+            ),
             output_type=ScoutOutput,
         )
-
         return {
             "scout_output": output.model_dump(mode="json"),
             "model_trace": [*state.get("model_trace", []), SCOUT_MODEL],

@@ -63,9 +63,7 @@ def main() -> None:
             )
 
     if result["terminal_status"] not in {"completed", "failed"}:
-        raise SystemExit(
-            f"M2 smoke ended in unexpected state: {result['terminal_status']}"
-        )
+        raise SystemExit(f"M2 smoke ended in unexpected state: {result['terminal_status']}")
 
     if not result.get("goal"):
         raise SystemExit("M2 smoke did not form an explicit goal.")

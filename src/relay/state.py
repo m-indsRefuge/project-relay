@@ -1,4 +1,4 @@
-"""Shared LangGraph state for Project Relay M1."""
+"""Shared LangGraph state for Project Relay M2."""
 
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -10,12 +10,11 @@ TerminalStatus = Literal[
 
 
 class RelayState(TypedDict):
-    """Shared state carried through the deterministic and model-backed graph."""
+    """Shared state for M2 goal pursuit."""
 
     episode_id: str
     task: str
 
-    # Retained from M0 to preserve interrupt/resume regression coverage.
     should_interrupt: bool
 
     route_reason: str | None
@@ -25,6 +24,12 @@ class RelayState(TypedDict):
     model_trace: list[str]
 
     resume_value: NotRequired[str]
+
+    goal: NotRequired[dict[str, Any]]
+    active_subgoal: NotRequired[dict[str, Any] | None]
+    grounding_audit: NotRequired[dict[str, Any]]
+    goal_evaluation: NotRequired[dict[str, Any]]
+    goal_iterations: int
 
     scout_output: NotRequired[dict[str, Any]]
     retriever_output: NotRequired[dict[str, Any]]

@@ -12,6 +12,8 @@ class ExecutionReceipt(TypedDict):
     route_reason: str | None
     visited_nodes: list[str]
     model_trace: list[str]
+    goal: dict[str, Any] | None
+    goal_iterations: int
     final_answer: str | None
 
 
@@ -30,5 +32,7 @@ def build_receipt(state: RelayState) -> ExecutionReceipt:
         "route_reason": state.get("route_reason"),
         "visited_nodes": list(state.get("visited_nodes", [])),
         "model_trace": list(state.get("model_trace", [])),
+        "goal": state.get("goal"),
+        "goal_iterations": state.get("goal_iterations", 0),
         "final_answer": final_answer,
     }

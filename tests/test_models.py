@@ -1,12 +1,13 @@
-"""M1 direct Ollama adapter tests."""
+"""Model-boundary and structured-output tests."""
 
 import json
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from relay.models import ModelInvocationError, OllamaClient
-from relay.nodes.schemas import ScoutOutput
+from relay.nodes.schemas import GoalEvaluationOutput, ScoutOutput
 
 
 def test_ollama_structured_response_is_validated() -> None:
@@ -126,4 +127,22 @@ def test_missing_required_model_fails_before_graph_execution() -> None:
     with pytest.raises(ModelInvocationError, match="model-b"):
         client.ensure_models_available(
             ("model-a", "model-b"),
+        )
+
+
+def test_missing_information_requires_subgoal_and_route() -> None:
+    with pytest.raises(ValidationError):
+        GoalEvaluationOutput(
+            status="missing_information",
+            rationale="More work is needed.",
+        )
+
+
+def test_satisfied_goal_rejects_spurious_route() -> None:
+    with pytest.raises(ValidationError):
+        GoalEvaluationOutput(
+            status="satisfied",
+            rationale="Done.",
+            subgoal="Should not exist.",
+            route="researcher",
         )

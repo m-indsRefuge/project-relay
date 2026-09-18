@@ -1,10 +1,9 @@
-"""M1 checkpoint persistence and isolation tests."""
+"""M2 checkpoint persistence and isolation tests."""
 
 from pathlib import Path
 
 from langgraph.types import Command
 
-from relay.config import RELAY_MODELS
 from relay.graph import open_graph
 
 
@@ -22,6 +21,7 @@ def make_state(
         "terminal_status": "running",
         "visited_nodes": [],
         "model_trace": [],
+        "goal_iterations": 0,
     }
 
 
@@ -46,8 +46,8 @@ def test_checkpoint_survives_database_reopen(
     ) as graph:
         graph.invoke(
             make_state(
-                episode_id="E-M1-010",
-                task="Persist this M1 state.",
+                episode_id="E-M2-010",
+                task="Persist this M2 state.",
             ),
             config,
         )
@@ -58,9 +58,10 @@ def test_checkpoint_survives_database_reopen(
     ) as graph:
         snapshot = graph.get_state(config)
 
-    assert snapshot.values["episode_id"] == "E-M1-010"
+    assert snapshot.values["episode_id"] == "E-M2-010"
     assert snapshot.values["terminal_status"] == "completed"
-    assert snapshot.values["model_trace"] == list(RELAY_MODELS)
+    assert snapshot.values["goal_iterations"] == 1
+    assert snapshot.values["grounding_audit"]["assessment"] == "grounded"
 
 
 def test_threads_do_not_contaminate_each_other(
@@ -78,7 +79,7 @@ def test_threads_do_not_contaminate_each_other(
     ) as graph:
         graph.invoke(
             make_state(
-                episode_id="E-M1-A",
+                episode_id="E-M2-A",
                 task="State belonging to A.",
             ),
             config_a,
@@ -86,7 +87,7 @@ def test_threads_do_not_contaminate_each_other(
 
         graph.invoke(
             make_state(
-                episode_id="E-M1-B",
+                episode_id="E-M2-B",
                 task="State belonging to B.",
             ),
             config_b,
@@ -95,14 +96,14 @@ def test_threads_do_not_contaminate_each_other(
         state_a = graph.get_state(config_a)
         state_b = graph.get_state(config_b)
 
-    assert state_a.values["episode_id"] == "E-M1-A"
+    assert state_a.values["episode_id"] == "E-M2-A"
     assert state_a.values["task"] == "State belonging to A."
 
-    assert state_b.values["episode_id"] == "E-M1-B"
+    assert state_b.values["episode_id"] == "E-M2-B"
     assert state_b.values["task"] == "State belonging to B."
 
 
-def test_interrupt_resumes_into_four_model_path_after_reopen(
+def test_interrupt_resumes_into_goal_path_after_reopen(
     tmp_path: Path,
     fake_model_client,
 ) -> None:
@@ -116,8 +117,8 @@ def test_interrupt_resumes_into_four_model_path_after_reopen(
         events = list(
             graph.stream(
                 make_state(
-                    episode_id="E-M1-020",
-                    task="Exercise M1 checkpointed resume.",
+                    episode_id="E-M2-020",
+                    task="Exercise M2 checkpointed resume.",
                     should_interrupt=True,
                 ),
                 config,
@@ -133,20 +134,22 @@ def test_interrupt_resumes_into_four_model_path_after_reopen(
         model_client=fake_model_client,
     ) as graph:
         result = graph.invoke(
-            Command(resume="M1 resume accepted"),
+            Command(resume="M2 resume accepted"),
             config,
         )
 
     assert result["terminal_status"] == "completed"
-    assert result["resume_value"] == "M1 resume accepted"
-    assert result["route_reason"] == "checkpointed interrupt resumed"
-    assert result["model_trace"] == list(RELAY_MODELS)
+    assert result["resume_value"] == "M2 resume accepted"
+    assert result["goal_iterations"] == 1
     assert result["visited_nodes"] == [
         "initialize_state",
         "pause_for_resume",
+        "form_goal",
         "scout",
         "retriever",
         "researcher",
         "synthesizer",
+        "grounding_audit",
+        "evaluate_goal",
         "complete",
     ]

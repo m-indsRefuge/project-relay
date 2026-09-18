@@ -11,53 +11,48 @@ agentic harness.
 
 ## Models
 
-Initial model set:
-
 - `phi4-mini:3.8b-q4_K_M` — Scout
 - `ministral-3:8b` — Retriever
 - `gemma4:e4b` — Researcher
-- `qwen3:8b` — Synthesizer and later integrative functions
+- `qwen3:8b` — Goal formation, synthesis, goal evaluation
 
 LangGraph is the orchestration authority. There is no LLM supervisor.
 
-## Accepted Milestone
+## Accepted Milestones
 
 ### M0 — LangGraph Skeleton
 
-M0 proved:
-
-- explicit `StateGraph`;
-- typed shared state;
-- deterministic routing;
-- explicit success/failure paths;
-- SQLite checkpoint persistence;
-- thread isolation;
-- checkpointed interrupt/resume;
-- execution receipts;
-- failure-aware documentation.
-
-## Current Milestone
+Proved state, routing, SQLite checkpointing, thread isolation,
+interrupt/resume, receipts, and failure-aware documentation.
 
 ### M1 — Four-Model Graph
 
-M1 introduces exactly four local model-backed LangGraph nodes:
+Proved the live model path:
 
-`Scout -> Retriever -> Researcher -> Synthesizer`
+`Phi -> Ministral -> Gemma -> Qwen`
 
-M1 deliberately does **not** introduce:
+through explicit LangGraph state.
 
-- RAG;
-- web access;
-- long-term memory;
-- dynamic goals;
-- iterative agent loops.
+## Current Milestone
 
-Those capabilities belong to later milestones.
+### M2 — Goal Pursuit
+
+M2 adds:
+
+- explicit Qwen goal formation;
+- observable success criteria;
+- a focused Qwen grounding audit before goal evaluation;
+- Qwen goal evaluation;
+- one active subgoal at a time;
+- conditional LangGraph routing back to Scout, Retriever, or Researcher;
+- a maximum of three goal-evaluation iterations;
+- explicit completion, failure, and budget-exhaustion terminals.
+
+M2 still has no RAG, web, or long-term memory. Those capabilities are not
+simulated.
 
 ## Engineering Standard
 
-Every significant subsystem must document its known failure boundaries in:
+Every significant subsystem documents important failure boundaries in:
 
 `docs/FAILURE_MAP.md`
-
-Failure documentation evolves alongside implementation and tests.

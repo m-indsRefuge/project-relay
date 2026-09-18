@@ -1,12 +1,21 @@
-"""Structured outputs used by the four M1 model-backed nodes."""
+"""Structured outputs used by Project Relay model-backed nodes."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictOutput(BaseModel):
     """Base class that rejects unexpected fields."""
 
     model_config = ConfigDict(extra="forbid")
+
+
+class GoalOutput(StrictOutput):
+    """Qwen goal formation output."""
+
+    objective: str = Field(min_length=1)
+    success_criteria: list[str] = Field(min_length=1)
 
 
 class ScoutOutput(StrictOutput):
@@ -26,7 +35,7 @@ class RetrieverOutput(StrictOutput):
 
 
 class ResearcherOutput(StrictOutput):
-    """Gemma analysis of the supplied M1 context."""
+    """Gemma analysis of the supplied context."""
 
     hypotheses: list[str]
     risks: list[str]
@@ -34,7 +43,57 @@ class ResearcherOutput(StrictOutput):
 
 
 class SynthesizerOutput(StrictOutput):
-    """Qwen final M1 synthesis."""
+    """Qwen synthesis."""
 
     answer: str = Field(min_length=1)
     supporting_points: list[str]
+
+
+class GroundingAuditOutput(StrictOutput):
+    """Focused audit of candidate factual grounding."""
+
+    assessment: Literal["grounded", "needs_revision"]
+    unsupported_claims: list[str]
+    rationale: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_grounding_decision(self) -> "GroundingAuditOutput":
+        if self.assessment == "grounded" and self.unsupported_claims:
+            raise ValueError(
+                "grounded assessment cannot contain unsupported claims"
+            )
+
+        if self.assessment == "needs_revision" and not self.unsupported_claims:
+            raise ValueError(
+                "needs_revision requires at least one unsupported claim"
+            )
+
+        return self
+
+
+class GoalEvaluationOutput(StrictOutput):
+    """Qwen decision about whether the active goal is satisfied."""
+
+    status: Literal["satisfied", "missing_information", "failed"]
+    rationale: str = Field(min_length=1)
+    subgoal: str | None = None
+    route: Literal[
+        "scout",
+        "retriever",
+        "researcher",
+        "synthesizer",
+    ] | None = None
+
+    @model_validator(mode="after")
+    def validate_goal_decision(self) -> "GoalEvaluationOutput":
+        if self.status == "missing_information":
+            if not self.subgoal or self.route is None:
+                raise ValueError(
+                    "missing_information requires both subgoal and route"
+                )
+        elif self.subgoal is not None or self.route is not None:
+            raise ValueError(
+                "satisfied/failed decisions must not include subgoal or route"
+            )
+
+        return self

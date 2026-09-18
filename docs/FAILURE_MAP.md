@@ -377,3 +377,311 @@ path itself is part of the milestone contract.
 
 - `test_valid_task_runs_all_four_models`
 - `test_interrupt_resumes_into_four_model_path_after_reopen`
+
+---
+
+## FM-011 — Goal declared satisfied prematurely
+
+**Component:** Qwen goal evaluation
+**Code location:** `src/relay/nodes/goal.py`
+**Responsibility:** Decide whether the candidate answer meets the explicit
+goal and success criteria.
+
+### Observable symptoms
+
+Relay completes even though the candidate answer visibly fails one or more
+success criteria.
+
+### First check
+
+Inspect the stored `goal`, `goal_evaluation`, `synthesizer_output`, and
+`goal_iterations` in the terminal checkpoint/receipt.
+
+### Propagation
+
+Premature completion prevents the graph from taking a useful corrective loop.
+
+### Recovery
+
+Reproduce the episode and review the goal-evaluation prompt/schema before
+changing routing logic.
+
+### DO NOT
+
+Do not add unconditional extra loops merely to hide evaluator quality problems.
+
+---
+
+## FM-012 — Goal loop exhausts its iteration budget
+
+**Component:** LangGraph M2 goal loop
+**Code location:** `src/relay/graph.py::route_after_goal_evaluation`
+**Responsibility:** Bound autonomous re-processing.
+
+### Observable symptoms
+
+`terminal_status = "failed"`
+
+and:
+
+`route_reason = "goal iteration budget exhausted"`
+
+after three goal evaluations.
+
+### First check
+
+Inspect `goal_iterations`, `goal_evaluation`, `active_subgoal`, and
+`visited_nodes`.
+
+### Propagation
+
+Relay stops rather than looping indefinitely.
+
+### Recovery
+
+Determine whether the task genuinely lacks information, the evaluator is
+creating ineffective subgoals, or the specialist route is unproductive.
+
+### DO NOT
+
+Do not raise the iteration limit before diagnosing why the existing loops
+failed.
+
+### Related tests
+
+`test_goal_iteration_budget_fails_closed`
+
+---
+
+## FM-013 — Invalid or non-actionable subgoal route
+
+**Component:** Goal evaluation schema / LangGraph routing
+**Code locations:** `src/relay/nodes/schemas.py`, `src/relay/graph.py`
+
+### Observable symptoms
+
+A `missing_information` decision cannot produce a valid next node or the model
+returns a route outside Scout, Retriever, and Researcher.
+
+### First check
+
+Inspect the structured `GoalEvaluationOutput`.
+
+### Recovery
+
+Preserve the invalid model output and correct the evaluator prompt/schema
+boundary. The graph must fail closed rather than invent a route.
+
+### DO NOT
+
+Do not route to RAG, web, or memory during M2; those subsystems do not exist yet.
+
+### Related tests
+
+`test_missing_information_requires_subgoal_and_route`
+
+---
+
+## FM-014 — Goal loop uses stale specialist context incorrectly
+
+**Component:** M2 shared state during targeted rerouting
+**Code locations:** `src/relay/nodes/`
+**Responsibility:** Allow a targeted specialist pass to build on existing state
+without pretending untouched evidence is new.
+
+### Observable symptoms
+
+A looped answer attributes old Scout/Retriever/Researcher output to the new
+subgoal or appears to treat stale context as newly discovered evidence.
+
+### First check
+
+Inspect `active_subgoal`, `visited_nodes`, and each specialist output around
+the rerouted pass.
+
+### Recovery
+
+Determine whether the targeted node prompt correctly distinguishes existing
+context from the active subgoal.
+
+### DO NOT
+
+Do not erase all prior state on every loop; doing so would turn goal pursuit
+into repeated stateless execution rather than LangGraph stateful refinement.
+### Observed M2 live smoke goal-drift incident
+
+The first M2 live smoke exposed a concrete version of this failure.
+
+Original user task:
+
+`Describe a cautious diagnostic approach ...`
+
+Qwen formed the stronger objective:
+
+`Identify the cause of the service failure ...`
+
+The success criteria then required checking configuration state, service state,
+and logs even though M2 had no tools capable of performing those checks.
+
+The synthesizer correctly described how those checks should be performed, but
+the evaluator declared the drifted goal satisfied without receiving the
+original user task as part of its evaluation context.
+
+### Root cause
+
+The semantic authority chain was incomplete:
+
+`original user task -> generated goal -> evaluation`
+
+Goal evaluation received the generated goal but not the original task, so it
+could not directly detect that goal formation had changed the requested
+deliverable.
+
+### Corrective action
+
+- Goal formation explicitly preserves the requested deliverable.
+- Goal evaluation receives the original task as authoritative context.
+- The evaluator distinguishes describing/planning an action from actually
+  performing that action.
+- Regression tests protect both prompt contracts and evaluator context.
+
+### Related tests
+
+- `test_goal_contract_explicitly_preserves_requested_deliverable`
+- `test_evaluator_contract_distinguishes_describing_from_performing`
+- `test_goal_evaluator_receives_original_user_task`
+---
+
+## FM-015 — Inference promoted to supplied fact
+
+**Component:** Multi-model evidence boundary
+**Code locations:** `src/relay/nodes/scout.py`, `retriever.py`,
+`researcher.py`, `synthesizer.py`, `goal.py`
+
+### Observed symptom
+
+During the M2.1 live smoke, the original task stated only that a service stopped
+working immediately after a configuration change.
+
+Scout added this to `known`:
+
+`The change was the only recent event prior to the service failure.`
+
+That exclusivity claim was not supplied by the user. The synthesizer later
+repeated it as a supporting point.
+
+### Root cause
+
+The graph correctly preserved model outputs, but the semantic contracts did
+not strongly distinguish:
+
+- supplied fact;
+- inference;
+- hypothesis;
+- question;
+- recommendation.
+
+Because downstream nodes consume upstream state, an unsupported inference can
+gain apparent authority simply by being repeated across multiple model nodes.
+
+### Propagation path
+
+`unsupported Scout known -> Retriever context -> Researcher reasoning ->
+Synthesizer supporting point -> possible evaluator acceptance`
+
+### First diagnostics
+
+Inspect:
+
+- original `task`;
+- `scout_output.known`;
+- `retriever_output.organized_context`;
+- `researcher_output.hypotheses`;
+- `synthesizer_output.supporting_points`;
+- `goal_evaluation`.
+
+Compare every factual claim against the original task or later real evidence.
+
+### Recovery
+
+Strengthen the existing node contracts so supplied facts remain distinct from
+hypotheses and recommendations. Re-run the original episode and verify that
+unsupported exclusivity/causality claims disappear or remain explicitly
+hypothetical.
+
+### Data risk
+
+Medium. Once long-term memory exists, an unsupported inference that is treated
+as fact could later be persisted and amplified across episodes.
+
+### DO NOT
+
+Do not treat agreement among multiple Relay models as independent evidence.
+They may all be reasoning from the same unsupported upstream statement.
+
+### Related tests
+
+- `test_scout_known_is_limited_to_supplied_facts`
+- `test_retriever_must_not_promote_inference_to_fact`
+- `test_researcher_keeps_hypotheses_nonfactual`
+- `test_synthesizer_rejects_unsupported_supporting_points`
+- `test_goal_evaluator_checks_candidate_against_original_task`
+
+---
+
+## FM-016 — Goal evaluator accepts a candidate despite unsupported claims
+
+**Component:** M2 grounding / goal-evaluation boundary
+**Code locations:** `src/relay/nodes/grounding.py`, `goal.py`,
+`synthesizer.py`, `graph.py`
+
+### Observed symptom
+
+The M2.2 live smoke correctly grounded Scout, but Researcher produced an
+overstated causal hypothesis and Synthesizer promoted it into
+`supporting_points`:
+
+`The service failure is directly attributable to the configuration change...`
+
+Goal Evaluator nevertheless returned `satisfied` and claimed the answer
+contained no unsupported factual claims.
+
+### Root cause
+
+Prompt-only grounding instructions were insufficient. Goal evaluation had two
+jobs at once:
+
+1. check factual grounding;
+2. decide whether the goal was satisfied.
+
+A single semantic decision could therefore miss a grounding error and still
+authorize terminal completion.
+
+### Corrective architecture
+
+M2.3 separates those responsibilities:
+
+`synthesis -> focused grounding audit -> goal evaluation`
+
+The grounding audit uses Qwen but is a separate narrow LangGraph node.
+
+If the audit reports unsupported claims, deterministic application logic
+overrides any `satisfied` evaluator decision and creates a bounded revision
+subgoal routed directly back to Synthesizer.
+
+### Propagation control
+
+An unsupported claim can no longer reach `complete` merely because Goal
+Evaluator overlooks it. The graph requires a subsequent audit to return
+`grounded`, or the existing goal-iteration budget eventually fails closed.
+
+### DO NOT
+
+Do not treat the grounding auditor as an external fact checker. In M2 it can
+only compare candidate claims against the supplied user task.
+
+### Related tests
+
+- `test_grounding_audit_forces_synthesizer_revision`
+- `test_grounded_audit_rejects_unsupported_claims`
+- `test_revision_audit_requires_an_issue`

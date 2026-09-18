@@ -16,6 +16,8 @@ RELAY_MODELS = (
     SYNTHESIZER_MODEL,
 )
 
+MAX_GOAL_ITERATIONS = 3
+
 
 @dataclass(frozen=True)
 class RelayConfig:
@@ -27,6 +29,8 @@ class RelayConfig:
 
     ollama_host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     ollama_timeout_seconds: float = 180.0
+
+    max_goal_iterations: int = MAX_GOAL_ITERATIONS
 
 
 DEFAULT_CONFIG = RelayConfig()

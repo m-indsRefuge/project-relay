@@ -10,18 +10,20 @@ from relay.state import RelayState
 GOAL_SYSTEM = """You are Relay's Goal Former.
 The user's requested deliverable is authoritative.
 Preserve the speech act and scope of the request.
-Do not transform \"describe how to investigate X\" into \"investigate X\".
-Do not transform \"explain X\" into \"prove X\".
+Do not transform "describe how to investigate X" into "investigate X".
+Do not transform "explain X" into "prove X".
 Convert the task into one objective and observable success criteria. Do not solve it.
 Return only the required structured output."""
 
 EVALUATION_SYSTEM = """You are Relay's Goal Evaluator.
 The original user task is authoritative.
 Judge whether the candidate satisfies the requested deliverable and success criteria.
-The focused grounding audit is authoritative for factual grounding; the goal cannot be satisfied
-until the Synthesizer revises them.
-If the user asked to describe an action, it does NOT require the described real-world action to
-have actually been performed. If the user asked Relay to perform an action, mark it satisfied only when graph state contains evidence that the required action actually occurred.
+The focused grounding audit is authoritative for factual grounding; the goal cannot
+be satisfied until the Synthesizer revises grounding issues.
+If the user asked to describe an action, it does NOT require the described real-world
+action to have actually been performed. If the user asked Relay to perform an action,
+mark it satisfied only when graph state contains evidence that the required action
+actually occurred.
 M3 may route additional work to scout, retriever, researcher, synthesizer, rag, or web.
 Use rag for missing local/project evidence and web for missing current/external evidence.
 Return only the required structured output."""
@@ -64,12 +66,21 @@ def make_goal_evaluator_node(client: StructuredModelClient):
             prompt=json.dumps(context, ensure_ascii=False),
             output_type=GoalEvaluationOutput,
         )
-        unsupported = state.get("grounding_audit", {}).get("unsupported_claims", [])
+        unsupported = state.get("grounding_audit", {}).get(
+            "unsupported_claims",
+            [],
+        )
         if unsupported:
             output = GoalEvaluationOutput(
                 status="missing_information",
-                rationale="Grounding audit found issues that must be revised before completion.",
-                subgoal="Revise the candidate so all grounding-audit issues are removed or supported.",
+                rationale=(
+                    "Grounding audit found issues that must be revised "
+                    "before completion."
+                ),
+                subgoal=(
+                    "Revise the candidate so all grounding-audit issues are "
+                    "removed or supported."
+                ),
                 route="synthesizer",
             )
         iteration = state.get("goal_iterations", 0) + 1
@@ -86,7 +97,10 @@ def make_goal_evaluator_node(client: StructuredModelClient):
             updates["active_subgoal"] = None
             updates["route_reason"] = "goal evaluation failed"
         else:
-            updates["active_subgoal"] = {"objective": output.subgoal, "route": output.route}
+            updates["active_subgoal"] = {
+                "objective": output.subgoal,
+                "route": output.route,
+            }
             updates["route_reason"] = f"goal gap routed to {output.route}"
         return updates
 

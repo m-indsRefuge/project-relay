@@ -73,7 +73,9 @@ class OllamaClient:
                 response.raise_for_status()
                 payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            raise ModelInvocationError(f"Ollama request failed for model {model!r}: {exc}") from exc
+            raise ModelInvocationError(
+                f"Ollama request failed for model {model!r}: {exc}"
+            ) from exc
 
         raw = payload.get("response")
 
@@ -85,7 +87,9 @@ class OllamaClient:
         try:
             decoded = json.loads(raw)
         except json.JSONDecodeError as exc:
-            raise ModelInvocationError(f"Model {model!r} returned malformed JSON.") from exc
+            raise ModelInvocationError(
+                f"Model {model!r} returned malformed JSON."
+            ) from exc
 
         try:
             return output_type.model_validate(decoded)
@@ -107,7 +111,9 @@ class OllamaClient:
                 response.raise_for_status()
                 payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            raise ModelInvocationError(f"Unable to query Ollama model inventory: {exc}") from exc
+            raise ModelInvocationError(
+                f"Unable to query Ollama model inventory: {exc}"
+            ) from exc
 
         models = payload.get("models", [])
 

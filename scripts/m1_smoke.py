@@ -62,10 +62,14 @@ def main() -> None:
             )
 
     if result["terminal_status"] != "completed":
-        raise SystemExit(f"M1 smoke did not complete: {result['terminal_status']}")
+        raise SystemExit(
+            f"M1 smoke did not complete: {result['terminal_status']}"
+        )
 
     if result["model_trace"] != list(RELAY_MODELS):
-        raise SystemExit("M1 smoke did not execute the expected four-model sequence.")
+        raise SystemExit(
+            "M1 smoke did not execute the expected four-model sequence."
+        )
 
     receipt = build_receipt(result)
 

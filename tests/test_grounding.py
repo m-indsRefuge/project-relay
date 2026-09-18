@@ -38,7 +38,9 @@ def test_researcher_keeps_hypotheses_nonfactual() -> None:
 def test_synthesizer_rejects_unsupported_supporting_points() -> None:
     contract = normalize(SYNTHESIZER_SYSTEM)
 
-    assert "supporting_points must not contain unsupported real-world factual claims" in (contract)
+    assert "supporting_points must not contain unsupported real-world factual claims" in (
+        contract
+    )
     assert "original user task is authoritative for supplied facts" in contract
 
 

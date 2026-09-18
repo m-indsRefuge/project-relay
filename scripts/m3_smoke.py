@@ -11,13 +11,17 @@ from relay.models import OllamaClient
 from relay.receipt import build_receipt
 
 TASK = """Use BOTH Relay's local knowledge base and a live web search.
-Explain the difference between Relay's own use of LangGraph and the general LangGraph workflow model described by current public documentation.
-For Relay-specific claims, use local project knowledge. For current LangGraph claims, use web evidence. Preserve source provenance."""
+Explain the difference between Relay's own use of LangGraph and the general
+LangGraph workflow model described by current public documentation.
+For Relay-specific claims, use local project knowledge.
+For current LangGraph claims, use web evidence.
+Preserve source provenance."""
 
 
 def main() -> None:
     client = OllamaClient(
-        host=DEFAULT_CONFIG.ollama_host, timeout_seconds=DEFAULT_CONFIG.ollama_timeout_seconds
+        host=DEFAULT_CONFIG.ollama_host,
+        timeout_seconds=DEFAULT_CONFIG.ollama_timeout_seconds,
     )
     client.ensure_models_available((*RELAY_MODELS, EMBEDDING_MODEL))
     with tempfile.TemporaryDirectory(prefix="relay-m3-") as temp_dir:
@@ -48,7 +52,8 @@ def main() -> None:
         raise SystemExit("M3 smoke returned no web evidence.")
     citations = set(result.get("synthesizer_output", {}).get("citations", []))
     evidence_ids = {
-        record["source_id"] for record in [*result["rag_results"], *result["web_results"]]
+        record["source_id"]
+        for record in [*result["rag_results"], *result["web_results"]]
     }
     if not citations:
         raise SystemExit("M3 smoke produced no source citations.")

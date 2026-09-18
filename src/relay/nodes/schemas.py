@@ -22,13 +22,9 @@ class SourcePlanOutput(StrictOutput):
     rationale: str = Field(min_length=1)
 
     @model_validator(mode="after")
-    def validate_source_queries(self) -> "SourcePlanOutput":
-        if self.use_rag and not self.rag_query:
-            raise ValueError("use_rag requires rag_query")
+    def validate_disabled_source_queries(self) -> "SourcePlanOutput":
         if not self.use_rag and self.rag_query is not None:
             raise ValueError("rag_query must be null when use_rag is false")
-        if self.use_web and not self.web_query:
-            raise ValueError("use_web requires web_query")
         if not self.use_web and self.web_query is not None:
             raise ValueError("web_query must be null when use_web is false")
         return self

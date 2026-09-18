@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from relay.nodes.schemas import SourcePlanOutput
+from relay.nodes.sources import _resolve_source_plan
 from relay.rag.embeddings import EmbeddingError, OllamaEmbeddingClient
 from relay.rag.index import KnowledgeIndex
 
@@ -19,17 +20,55 @@ class FakeEmbedder:
         ]
 
 
-def test_source_plan_requires_query_for_enabled_source() -> None:
-    with pytest.raises(ValidationError):
-        SourcePlanOutput(
-            use_rag=True, rag_query=None, use_web=False, web_query=None, rationale="Invalid"
-        )
+def source_state() -> dict:
+    return {
+        "task": "Use local Relay docs and current public LangGraph information.",
+        "goal": {
+            "objective": "Compare Relay's architecture with current LangGraph documentation.",
+            "success_criteria": ["Use both evidence classes."],
+        },
+    }
+
+
+def test_source_plan_allows_missing_query_for_enabled_source() -> None:
+    output = SourcePlanOutput(
+        use_rag=True,
+        rag_query=None,
+        use_web=True,
+        web_query=None,
+        rationale="Both source classes are required.",
+    )
+
+    plan = _resolve_source_plan(output, source_state())
+
+    expected = "Compare Relay's architecture with current LangGraph documentation."
+    assert plan["rag_query"] == expected
+    assert plan["web_query"] == expected
+
+
+def test_source_plan_preserves_model_query_when_present() -> None:
+    output = SourcePlanOutput(
+        use_rag=True,
+        rag_query="Relay orchestration architecture",
+        use_web=True,
+        web_query="current LangGraph workflow state nodes edges",
+        rationale="Use focused queries.",
+    )
+
+    plan = _resolve_source_plan(output, source_state())
+
+    assert plan["rag_query"] == "Relay orchestration architecture"
+    assert plan["web_query"] == "current LangGraph workflow state nodes edges"
 
 
 def test_source_plan_rejects_query_for_disabled_source() -> None:
     with pytest.raises(ValidationError):
         SourcePlanOutput(
-            use_rag=False, rag_query="bad", use_web=False, web_query=None, rationale="Invalid"
+            use_rag=False,
+            rag_query="bad",
+            use_web=False,
+            web_query=None,
+            rationale="Invalid",
         )
 
 
@@ -56,10 +95,12 @@ def test_knowledge_index_returns_semantic_top_hit(tmp_path: Path) -> None:
     knowledge = tmp_path / "knowledge"
     knowledge.mkdir()
     (knowledge / "graph.md").write_text(
-        "# Graph Notes\n\nLangGraph coordinates state, nodes, and edges.", encoding="utf-8"
+        "# Graph Notes\n\nLangGraph coordinates state, nodes, and edges.",
+        encoding="utf-8",
     )
     (knowledge / "incident.md").write_text(
-        "# Incident Notes\n\nIncident response starts with evidence.", encoding="utf-8"
+        "# Incident Notes\n\nIncident response starts with evidence.",
+        encoding="utf-8",
     )
     index = KnowledgeIndex(knowledge_dir=knowledge, embedder=FakeEmbedder())
     results = index.search("How does LangGraph work?", limit=1)

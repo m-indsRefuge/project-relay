@@ -737,3 +737,54 @@ not be presented as controlled Relay documentation. Inspect `kind`, `source_id`,
 
 Unknown citation IDs or missing citations when evidence was supplied force `needs_revision` before
 terminal completion. Never accept plausible-looking citation strings that are absent from graph state.
+
+
+---
+
+## FM-022 — Source planner enables a source but omits its query
+
+**Component:** M3 source-planning boundary
+**Code locations:** `src/relay/nodes/schemas.py`, `src/relay/nodes/sources.py`
+
+### Observed symptom
+
+The first live M3 smoke reached `plan_sources` and Qwen correctly returned
+`use_rag = true`, but omitted `rag_query`. The original schema rejected the
+entire structured output with `ModelInvocationError` before RAG or web
+retrieval could run.
+
+### Root cause
+
+The source-planning contract made two different responsibilities jointly
+mandatory:
+
+1. semantic source selection by the model;
+2. exact query-string construction by the model.
+
+A useful source decision therefore failed closed because a secondary string
+field was absent.
+
+### Corrective architecture
+
+Qwen remains responsible for `use_rag` and `use_web` and may propose focused
+queries. Relay deterministically supplies a fallback query from the explicit
+goal objective, or the original task when no usable goal objective exists.
+
+Queries supplied for disabled sources remain invalid.
+
+### Propagation control
+
+An omitted query can no longer abort an otherwise valid source plan. The
+deterministic fallback is visible in `source_plan` and is used by the normal
+RAG/web nodes.
+
+### DO NOT
+
+Do not silently change `use_rag` or `use_web` to compensate for an omitted
+query. Source selection remains the planner's explicit decision.
+
+### Related tests
+
+- `test_source_plan_allows_missing_query_for_enabled_source`
+- `test_source_plan_preserves_model_query_when_present`
+- `test_source_plan_rejects_query_for_disabled_source`

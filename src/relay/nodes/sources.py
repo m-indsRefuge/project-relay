@@ -14,7 +14,35 @@ Decide whether the task needs local RAG, live web search, both, or neither.
 If the user explicitly requests BOTH local/project documentation and current web evidence,
 set both use_rag and use_web to true.
 Use RAG for Relay-specific/local documentation. Use web for current or external public information.
+When enabling a source, provide a focused query when possible.
 Do not use web merely because it exists. Return only the required structured output."""
+
+
+def _fallback_query(state: RelayState) -> str:
+    goal = state.get("goal", {})
+    objective = goal.get("objective") if isinstance(goal, dict) else None
+    if isinstance(objective, str) and objective.strip():
+        return objective.strip()
+    return state["task"].strip()
+
+
+def _resolve_source_plan(output: SourcePlanOutput, state: RelayState) -> dict:
+    fallback = _fallback_query(state)
+    plan = output.model_dump(mode="json")
+
+    if output.use_rag:
+        query = output.rag_query.strip() if output.rag_query else ""
+        plan["rag_query"] = query or fallback
+    else:
+        plan["rag_query"] = None
+
+    if output.use_web:
+        query = output.web_query.strip() if output.web_query else ""
+        plan["web_query"] = query or fallback
+    else:
+        plan["web_query"] = None
+
+    return plan
 
 
 def make_source_planner_node(client: StructuredModelClient):
@@ -23,12 +51,13 @@ def make_source_planner_node(client: StructuredModelClient):
             model=SYNTHESIZER_MODEL,
             system=SOURCE_PLAN_SYSTEM,
             prompt=json.dumps(
-                {"original_user_task": state["task"], "goal": state["goal"]}, ensure_ascii=False
+                {"original_user_task": state["task"], "goal": state["goal"]},
+                ensure_ascii=False,
             ),
             output_type=SourcePlanOutput,
         )
         return {
-            "source_plan": output.model_dump(mode="json"),
+            "source_plan": _resolve_source_plan(output, state),
             "model_trace": [*state.get("model_trace", []), SYNTHESIZER_MODEL],
             "visited_nodes": [*state.get("visited_nodes", []), "plan_sources"],
         }

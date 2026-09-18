@@ -14,7 +14,8 @@ Evidence boundary:
 - RAG may support Relay/local-document claims; web may support external/current claims.
 - A model hypothesis is not evidence merely because it appears in graph state.
 - `supporting_points` must not contain unsupported real-world factual claims.
-- If retrieved evidence materially supports the answer, include exact `source_id` values in `citations`.
+- If retrieved evidence materially supports the answer, include exact
+  `source_id` values in `citations`.
 - Never invent a source ID.
 - If a prior grounding audit exists, revise every listed unsupported claim.
 Return only the required structured output."""
